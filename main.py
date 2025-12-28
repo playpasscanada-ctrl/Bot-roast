@@ -1,15 +1,21 @@
 import discord
 import requests
 import os
+import time
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
+
+CHANNEL_ID = 1257403231772872895   # <-- Tumhara channel ID
 
 MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+
+last_reply = 0  # Cooldown tracking
+
 
 def ai_reply(message):
     url = f"https://api-inference.huggingface.co/models/{MODEL}"
@@ -19,7 +25,7 @@ def ai_reply(message):
         "Content-Type": "application/json"
     }
 
-    prompt = f"""You are a sarcastic rude discord bot that replies in Hinglish attitude style.
+    prompt = f"""You are a sarcastic rude discord bot that replies in Hinglish attitude style only.
 User: {message}
 Bot:"""
 
@@ -38,19 +44,17 @@ Bot:"""
         res = requests.post(url, headers=headers, json=data)
         j = res.json()
 
-        # SUCCESS
         if isinstance(j, list) and "generated_text" in j[0]:
             reply = j[0]["generated_text"].split("Bot:")[-1].strip()
             return reply
 
-        # HF Returning Error
         if "error" in j:
             return f"HuggingFace bol raha: {j['error']} 😒"
 
-        return "Bhai HF kuch ulta seedha de raha hai 😐"
+        return "HF kuch ulta sidha de raha hai bhai 😐"
 
-    except Exception as e:
-        return "Server slow hai bhai, shanti se baith 😑"
+    except Exception:
+        return "Server slow hai bhai, thoda sabr rak 😑"
 
 
 @client.event
@@ -60,11 +64,23 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    global last_reply
+
     if message.author == client.user:
         return
 
     if message.author.bot:
         return
+
+    # Reply only in selected channel
+    if message.channel.id != CHANNEL_ID:
+        return
+
+    # Cooldown (5 seconds)
+    if time.time() - last_reply < 5:
+        return
+
+    last_reply = time.time()
 
     reply = ai_reply(message.content)
     await message.channel.send(reply)
