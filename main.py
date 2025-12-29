@@ -23,7 +23,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 CHANNEL_ID = 1257403231772872895
-MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
+MODEL = "HuggingFaceH4/zephyr-7b-beta"
 
 
 intents = discord.Intents.default()
@@ -34,44 +34,42 @@ last_reply = 0
 
 
 def ai_reply(message):
-    url = "https://router.huggingface.co/v1/chat/completions"
+    url = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
 
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
         "Content-Type": "application/json"
     }
 
+    prompt = f"""Reply in rude sarcastic Hinglish like a toxic Discord bot.
+User: {message}
+Bot:"""
+
     data = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": "Reply in rude sarcastic Hinglish like a discord toxic bot"},
-            {"role": "user", "content": message}
-        ],
-        "temperature": 0.9,
-        "max_tokens": 120
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": 150,
+            "temperature": 0.9
+        },
+        "options": {
+            "wait_for_model": True
+        }
     }
 
     try:
         res = requests.post(url, headers=headers, json=data, timeout=60)
-
-        # DEBUG: Print response in logs
-        print("HF STATUS:", res.status_code)
-        print("HF RAW:", res.text)
-
         j = res.json()
 
-        # Router success format
-        if "choices" in j:
-            return j["choices"][0]["message"]["content"]
+        if isinstance(j, list) and "generated_text" in j[0]:
+            return j[0]["generated_text"].split("Bot:")[-1].strip()
 
-        # HF error dikha do discord me
         if "error" in j:
             return f"HuggingFace bol raha: {j['error']} 😒"
 
-        return f"HuggingFace ne ajeeb response diya: {j}"
+        return "HF kuch ajeeb response de raha 😐"
 
     except Exception as e:
-        return f"Exception aayi: {str(e)} 😑"
+        return f"Exception: {str(e)} 😑"
 
 
 @client.event
