@@ -34,7 +34,7 @@ last_reply = 0
 
 
 def ai_reply(message):
-    url = f"https://api-inference.huggingface.co/models/{MODEL}"
+    url = f"https://router.huggingface.co/{MODEL}"
 
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
