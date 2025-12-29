@@ -5,12 +5,12 @@ import time
 from flask import Flask
 from threading import Thread
 
-# ========= KEEP ALIVE SERVER =========
+# ========= KEEP ALIVE =========
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Discord Rude Bot is Running!"
+    return "Discord Rude Bot Running!"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
@@ -18,14 +18,14 @@ def run():
 def keep_alive():
     Thread(target=run).start()
 
-# ========= ENV TOKENS =========
+
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-CHANNEL_ID = 1257403231772872895   # <-- Tumhara channel ID
+CHANNEL_ID = 1257403231772872895
 MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
 
-# ========= DISCORD CLIENT =========
+
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -34,52 +34,42 @@ last_reply = 0
 
 
 def ai_reply(message):
-    url = "https://router.huggingface.co/mistralai/Mistral-7B-Instruct-v0.2"
+    url = "https://router.huggingface.co/v1/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
     }
 
-    prompt = f"""Reply in rude sarcastic Hinglish like a toxic Discord bot.
-User: {message}
-Bot:"""
-
     data = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 120,
-            "temperature": 0.9
-        },
-        "options": {
-            "wait_for_model": True
-        }
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Reply like a rude sarcastic toxic Discord bot in Hinglish."
+            },
+            {
+                "role": "user",
+                "content": message
+            }
+        ],
+        "temperature": 0.9,
+        "max_tokens": 120
     }
 
     try:
-        res = requests.post(url, headers=headers, json=data, timeout=40)
-
-        # If HF gives JSON output
+        res = requests.post(url, headers=headers, json=data, timeout=50)
         j = res.json()
 
-        if isinstance(j, list) and "generated_text" in j[0]:
-            return j[0]["generated_text"].split("Bot:")[-1].strip()
+        return j["choices"][0]["message"]["content"]
 
-        # Router error message show karao taaki samajh aaye
-        if "error" in j:
-            return f"HuggingFace bol raha: {j['error']} 😒"
-
-        return "HF kuch ajeeb response de raha 😐"
-
-    except Exception as e:
+    except Exception:
         return "Server slow hai bhai, thoda sabr rak 😑"
 
 
 @client.event
 async def on_ready():
     print("AI Rude Bot Online 😎")
-    print(f"Reply Only Channel => {CHANNEL_ID}")
 
 
 @client.event
@@ -92,11 +82,9 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Only that channel
     if message.channel.id != CHANNEL_ID:
         return
 
-    # Cooldown — 5 sec
     if time.time() - last_reply < 5:
         return
 
@@ -106,6 +94,5 @@ async def on_message(message):
     await message.channel.send(reply)
 
 
-# ========= START =========
 keep_alive()
 client.run(DISCORD_TOKEN)
