@@ -2,19 +2,35 @@ import discord
 import requests
 import os
 import time
+from flask import Flask
+from threading import Thread
 
+# ========= KEEP ALIVE SERVER =========
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Discord Rude Bot is Running!"
+
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    Thread(target=run).start()
+
+# ========= ENV TOKENS =========
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 CHANNEL_ID = 1257403231772872895   # <-- Tumhara channel ID
-
 MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
 
+# ========= DISCORD CLIENT =========
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-last_reply = 0  # Cooldown tracking
+last_reply = 0
 
 
 def ai_reply(message):
@@ -60,6 +76,7 @@ Bot:"""
 @client.event
 async def on_ready():
     print("AI Rude Bot Online 😎")
+    print(f"Reply Only Channel => {CHANNEL_ID}")
 
 
 @client.event
@@ -72,11 +89,11 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Reply only in selected channel
+    # Only that channel
     if message.channel.id != CHANNEL_ID:
         return
 
-    # Cooldown (5 seconds)
+    # Cooldown — 5 sec
     if time.time() - last_reply < 5:
         return
 
@@ -86,4 +103,6 @@ async def on_message(message):
     await message.channel.send(reply)
 
 
+# ========= START =========
+keep_alive()
 client.run(DISCORD_TOKEN)
