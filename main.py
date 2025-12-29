@@ -44,27 +44,34 @@ def ai_reply(message):
     data = {
         "model": MODEL,
         "messages": [
-            {
-                "role": "system",
-                "content": "Reply like a rude sarcastic toxic Discord bot in Hinglish."
-            },
-            {
-                "role": "user",
-                "content": message
-            }
+            {"role": "system", "content": "Reply in rude sarcastic Hinglish like a discord toxic bot"},
+            {"role": "user", "content": message}
         ],
         "temperature": 0.9,
         "max_tokens": 120
     }
 
     try:
-        res = requests.post(url, headers=headers, json=data, timeout=50)
+        res = requests.post(url, headers=headers, json=data, timeout=60)
+
+        # DEBUG: Print response in logs
+        print("HF STATUS:", res.status_code)
+        print("HF RAW:", res.text)
+
         j = res.json()
 
-        return j["choices"][0]["message"]["content"]
+        # Router success format
+        if "choices" in j:
+            return j["choices"][0]["message"]["content"]
 
-    except Exception:
-        return "Server slow hai bhai, thoda sabr rak 😑"
+        # HF error dikha do discord me
+        if "error" in j:
+            return f"HuggingFace bol raha: {j['error']} 😒"
+
+        return f"HuggingFace ne ajeeb response diya: {j}"
+
+    except Exception as e:
+        return f"Exception aayi: {str(e)} 😑"
 
 
 @client.event
