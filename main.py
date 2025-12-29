@@ -34,14 +34,15 @@ last_reply = 0
 
 
 def ai_reply(message):
-    url = f"https://router.huggingface.co/{MODEL}"
+    url = "https://router.huggingface.co/mistralai/Mistral-7B-Instruct-v0.2"
 
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
 
-    prompt = f"""You are a sarcastic rude discord bot that replies in Hinglish attitude style only.
+    prompt = f"""Reply in rude sarcastic Hinglish like a toxic Discord bot.
 User: {message}
 Bot:"""
 
@@ -57,19 +58,21 @@ Bot:"""
     }
 
     try:
-        res = requests.post(url, headers=headers, json=data)
+        res = requests.post(url, headers=headers, json=data, timeout=40)
+
+        # If HF gives JSON output
         j = res.json()
 
         if isinstance(j, list) and "generated_text" in j[0]:
-            reply = j[0]["generated_text"].split("Bot:")[-1].strip()
-            return reply
+            return j[0]["generated_text"].split("Bot:")[-1].strip()
 
+        # Router error message show karao taaki samajh aaye
         if "error" in j:
             return f"HuggingFace bol raha: {j['error']} 😒"
 
-        return "HF kuch ulta sidha de raha hai bhai 😐"
+        return "HF kuch ajeeb response de raha 😐"
 
-    except Exception:
+    except Exception as e:
         return "Server slow hai bhai, thoda sabr rak 😑"
 
 
